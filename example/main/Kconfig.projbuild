@@ -1,0 +1,51 @@
+menu "Example config"
+	config WIPKAT_SERVO_1
+		bool "Enable servo 1"
+		default y
+
+	menu "Servo 1 config"
+		depends on WIPKAT_SERVO_1
+
+		config WIPKAT_SERVO_1_CHANNEL
+			int "Servo channel"
+			default 0
+
+		config WIPKAT_SERVO_1_PIN
+			int "Pin number"
+			default 17
+
+		config WIPKAT_SERVO_1_MIN
+			int "Min value (us)"
+			default 800
+
+		config WIPKAT_SERVO_1_MAX
+			int "Max value (us)"
+			default 1200
+
+	endmenu
+	
+	config WIPKAT_SERVO_2
+		bool "Enable servo 2"
+		default y
+
+	menu "Servo 2 config"
+		depends on WIPKAT_SERVO_2
+
+		config WIPKAT_SERVO_2_CHANNEL
+			int "Servo channel"
+			default 1
+
+		config WIPKAT_SERVO_2_PIN
+			int "Pin number"
+			default 18
+
+		config WIPKAT_SERVO_2_MIN
+			int "Min value (us)"
+			default 800
+
+		config WIPKAT_SERVO_2_MAX
+			int "Max value (us)"
+			default 1200
+	endmenu
+endmenu
+	
