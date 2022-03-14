@@ -1,51 +1,65 @@
 menu "Example config"
-	config WIPKAT_SERVO_1
-		bool "Enable servo 1"
+	menuconfig WIPKAT_WIFI
+		bool "WiFi"
+		default n
+
+		config WIPKAT_WIFI_SSID
+			depends on WIPKAT_WIFI
+			string "WiFi SSID"
+
+		config WIPKAT_WIFI_PASSWORD
+			depends on WIPKAT_WIFI
+			string "WiFi password"
+
+	menuconfig WIPKAT_SERVO_1
+		bool "Servo 1"
 		default y
 
-	menu "Servo 1 config"
-		depends on WIPKAT_SERVO_1
 
 		config WIPKAT_SERVO_1_CHANNEL
+			depends on WIPKAT_SERVO_1
 			int "Servo channel"
 			default 0
 
 		config WIPKAT_SERVO_1_PIN
+			depends on WIPKAT_SERVO_1
 			int "Pin number"
 			default 17
 
 		config WIPKAT_SERVO_1_MIN
+			depends on WIPKAT_SERVO_1
 			int "Min value (us)"
 			default 800
 
 		config WIPKAT_SERVO_1_MAX
+			depends on WIPKAT_SERVO_1
 			int "Max value (us)"
 			default 1200
 
-	endmenu
 	
-	config WIPKAT_SERVO_2
-		bool "Enable servo 2"
+	menuconfig WIPKAT_SERVO_2
+		bool "Servo 2"
 		default y
 
-	menu "Servo 2 config"
-		depends on WIPKAT_SERVO_2
 
 		config WIPKAT_SERVO_2_CHANNEL
+			depends on WIPKAT_SERVO_2
 			int "Servo channel"
 			default 1
 
 		config WIPKAT_SERVO_2_PIN
+			depends on WIPKAT_SERVO_2
 			int "Pin number"
 			default 18
 
 		config WIPKAT_SERVO_2_MIN
+			depends on WIPKAT_SERVO_2
 			int "Min value (us)"
 			default 800
 
 		config WIPKAT_SERVO_2_MAX
+			depends on WIPKAT_SERVO_2
 			int "Max value (us)"
 			default 1200
-	endmenu
 endmenu
 	

@@ -21,47 +21,55 @@ void app_main(void)
 	}
 	assert(0 == rc);
 
-	wifi_init();
-
-	servo_channel_t s1 = -1;
-	servo_channel_t s2 = -1;
+	#if CONFIG_WIPKAT_WIFI
+	wifi_credentials_t cred = 
+	{
+		.ssid = CONFIG_WIPKAT_WIFI_SSID,
+		.password = CONFIG_WIPKAT_WIFI_PASSWORD,
+	};
+	wifi_connect(&cred);
+	#endif
 
 	#if CONFIG_WIPKAT_SERVO_1
+	#define SERVO1 CONFIG_WIPKAT_SERVO_1_CHANNEL
 	servo_config_t servo1 =
 	{
-		.channel = CONFIG_WIPKAT_SERVO_1_CHANNEL,
+		.channel = SERVO1,
 		.pin = CONFIG_WIPKAT_SERVO_1_PIN,
 		.minValue = CONFIG_WIPKAT_SERVO_1_MIN,
 		.maxValue = CONFIG_WIPKAT_SERVO_1_MAX,
 	};
 	servo_config(&servo1);
-	s1 = CONFIG_WIPKAT_SERVO_1_CHANNEL;
 	#endif
 
 	#if CONFIG_WIPKAT_SERVO_2
+	#define SERVO2 CONFIG_WIPKAT_SERVO_2_CHANNEL
 	servo_config_t servo2 =
 	{
-		.channel = CONFIG_WIPKAT_SERVO_2_CHANNEL,
+		.channel = SERVO2,
 		.pin = CONFIG_WIPKAT_SERVO_2_PIN,
 		.minValue = CONFIG_WIPKAT_SERVO_2_MIN,
 		.maxValue = CONFIG_WIPKAT_SERVO_2_MAX,
 	};
 	servo_config(&servo2);
-	s2 = CONFIG_WIPKAT_SERVO_2_CHANNEL;
 	#endif
 
 	for(;;) 
-	{ 
-		servo_update(s1, -1);
+	{
+		#ifdef SERVO1
+		servo_update(SERVO1, -1);
 		vTaskDelay(1000 / portTICK_PERIOD_MS); 
 		
-		servo_update(s1,  0);	
+		servo_update(SERVO1,  0);	
 		vTaskDelay(1000 / portTICK_PERIOD_MS); 
 
-		servo_update(s1, +1);
+		servo_update(SERVO1, +1);
 		vTaskDelay(1000 / portTICK_PERIOD_MS); 
 	
-		servo_update(s1,  0);
+		servo_update(SERVO1,  0);
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
+		#endif
+		
+		vTaskDelay(2000 / portTICK_PERIOD_MS);
 	}
 }

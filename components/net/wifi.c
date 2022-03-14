@@ -1,8 +1,8 @@
 #include "wifi.h"
+#include <string.h>
 
 static const char* TAG = "wifi";
 
-#if CONFIG_WIPKAT_WIFI
 static void wifi_handler(void* arg, esp_event_base_t base, int32_t id, void* data)
 {
 	if (WIFI_EVENT == base && WIFI_EVENT_STA_START == id)
@@ -21,13 +21,11 @@ static void wifi_handler(void* arg, esp_event_base_t base, int32_t id, void* dat
 		ESP_LOGI(TAG, "Obtained IP: " IPSTR, IP2STR(&evt->ip_info.ip));
 	}
 }
-#endif
 
-void wifi_init()
+int wifi_connect(const wifi_credentials_t* cred)
 {
-	assert(CONFIG_WIPKAT_WIFI);
-
-#if CONFIG_WIPKAT_WIFI
+	assert(cred->ssid);
+	assert(cred->password);
 
 	assert(0 == esp_netif_init());
 	assert(0 == esp_event_loop_create_default());
@@ -36,12 +34,12 @@ void wifi_init()
 	wifi_init_config_t initConfig = WIFI_INIT_CONFIG_DEFAULT();
 	assert(0 == esp_wifi_init(&initConfig));
 
-	wifi_config_t config =
+	wifi_config_t wifiConfig =
 	{
 		.sta = 
 		{
-			.ssid = CONFIG_WIPKAT_WIFI_SSID,
-			.password = CONFIG_WIPKAT_WIFI_PASSWORD,
+			//.ssid = cred->ssid,
+			//.password = cred->password,
 			.threshold.authmode = WIFI_AUTH_WPA2_PSK,
 
 			.pmf_cfg = 
@@ -51,13 +49,16 @@ void wifi_init()
 			},
 		},
 	};
-
+	assert(strlen(cred->ssid) < sizeof(wifiConfig.sta.ssid));
+	strncpy((char*)wifiConfig.sta.ssid, cred->ssid, sizeof(wifiConfig.sta.ssid)-1);
+	
+	assert(strlen(cred->password) < sizeof(wifiConfig.sta.password));
+	strncpy((char*)wifiConfig.sta.password, cred->password, sizeof(wifiConfig.sta.password)-1);
 	
 	assert(0 == esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID,    &wifi_handler, NULL));
 	assert(0 == esp_event_handler_register(IP_EVENT,   IP_EVENT_STA_GOT_IP, &wifi_handler, NULL));
 	assert(0 == esp_wifi_set_mode(WIFI_MODE_STA));
-	assert(0 == esp_wifi_set_config(WIFI_IF_STA, &config));
+	assert(0 == esp_wifi_set_config(WIFI_IF_STA, &wifiConfig));
 	assert(0 == esp_wifi_start());
-
-#endif
+	return 0;
 }

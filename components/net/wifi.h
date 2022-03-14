@@ -11,4 +11,10 @@
 #include <esp_system.h>
 #include <esp_netif.h>
 
-void wifi_init();
+typedef struct
+{
+	const char* ssid;
+	const char* password;
+} wifi_credentials_t;
+
+int wifi_connect(const wifi_credentials_t* credentials);
