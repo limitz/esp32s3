@@ -40,6 +40,7 @@ void app_main(void)
 		.maxValue = CONFIG_WIPKAT_SERVO_1_MAX,
 	};
 	servo_config(&servo1);
+	servo_update(SERVO1,  0);	
 	#endif
 
 	#if CONFIG_WIPKAT_SERVO_2
@@ -52,24 +53,34 @@ void app_main(void)
 		.maxValue = CONFIG_WIPKAT_SERVO_2_MAX,
 	};
 	servo_config(&servo2);
+	servo_update(SERVO2,  0);	
 	#endif
 
+	vTaskDelay(10000 / portTICK_PERIOD_MS); 
+	
 	for(;;) 
 	{
-		#ifdef SERVO1
-		servo_update(SERVO1, -1);
+		#ifdef SERVO2
+		servo_update(SERVO2, +0.5);
+		vTaskDelay(3000 / portTICK_PERIOD_MS); 
+		servo_update(SERVO2, +1.0);	
+		vTaskDelay(1500 / portTICK_PERIOD_MS); 
+		servo_update(SERVO2,  0.0);
 		vTaskDelay(1000 / portTICK_PERIOD_MS); 
+		servo_update(SERVO2, -1.0);
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+		servo_update(SERVO2,  0.2);
+		#endif
 		
-		servo_update(SERVO1,  0);	
-		vTaskDelay(1000 / portTICK_PERIOD_MS); 
-
+		#ifdef SERVO1
 		servo_update(SERVO1, +1);
-		vTaskDelay(1000 / portTICK_PERIOD_MS); 
-	
+		vTaskDelay(500 / portTICK_PERIOD_MS);
+		servo_update(SERVO1,  0);
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+		servo_update(SERVO1, -1);
+		vTaskDelay(500 / portTICK_PERIOD_MS);
 		servo_update(SERVO1,  0);
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 		#endif
-		
-		vTaskDelay(2000 / portTICK_PERIOD_MS);
 	}
 }
