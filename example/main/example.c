@@ -2,6 +2,7 @@
 #include <nvs_flash.h>
 #include <wifi.h>
 #include <servo.h>
+#include <dmx.h>
 
 #ifndef CONFIG_WIPKAT_SERVO_1
 #define CONFIG_WIPKAT_SERVO_1 0
@@ -9,6 +10,10 @@
 
 #ifndef CONFIG_WIPKAT_SERVO_2
 #define CONFIG_WIPKAT_SERVO_2 0
+#endif
+
+#ifndef CONFIG_WIPKAT_DMX_U1_EN
+#define CONFIG_WIPKAT_DMX_U1_EN 0
 #endif
 
 void app_main(void)
@@ -56,10 +61,30 @@ void app_main(void)
 	servo_update(SERVO2,  0);	
 	#endif
 
-	vTaskDelay(10000 / portTICK_PERIOD_MS); 
-	
+	#if CONFIG_WIPKAT_DMX_U1_EN
+	dmx_init();
+	#endif
+
+	//vTaskDelay(10000 / portTICK_PERIOD_MS); 
+	uint16_t pattern = 0;
 	for(;;) 
 	{
+		#if CONFIG_WIPKAT_DMX_U1_EN
+		DMX.U.frame->channel[1] = 215;
+		DMX.U.frame->channel[2] = 0;
+		DMX.U.frame->channel[3] = 0;
+		DMX.U.frame->channel[4] = 0;
+		DMX.U.frame->channel[5] = 63;
+		DMX.U.frame->channel[6] = 127&((pattern++)/4);
+		DMX.U.frame->channel[7] = 0;
+		DMX.U.frame->channel[8] = 63&((pattern++)/8);
+		DMX.U.frame->channel[9] = 0;
+		DMX.U.frame->channel[10] = 0;
+		DMX.U.frame->channel[11] = 0;
+		DMX.U.frame->channel[12] = 0;
+		dmx_update();	
+		#endif
+		
 		#ifdef SERVO2
 		servo_update(SERVO2, +0.5);
 		vTaskDelay(3000 / portTICK_PERIOD_MS); 
@@ -80,7 +105,9 @@ void app_main(void)
 		servo_update(SERVO1, -1);
 		vTaskDelay(500 / portTICK_PERIOD_MS);
 		servo_update(SERVO1,  0);
-		vTaskDelay(1000 / portTICK_PERIOD_MS);
+		vTaskDelay(150 / portTICK_PERIOD_MS);
 		#endif
+
+		vTaskDelay(10 / portTICK_PERIOD_MS);
 	}
 }
