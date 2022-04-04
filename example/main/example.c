@@ -2,6 +2,7 @@
 #include <nvs_flash.h>
 #include <wifi.h>
 #include <servo.h>
+#include <esp_http_server.h>
 
 #ifndef CONFIG_WIPKAT_SERVO_1
 #define CONFIG_WIPKAT_SERVO_1 0
@@ -12,6 +13,98 @@
 #endif
 
 #define TAG "main"
+#define GAMEPAD_SET 1
+#define GAMEPAD_LOST -5;
+
+extern const uint8_t index_html_start[] asm("_binary_index_html_start");
+extern const uint8_t index_html_end[] asm("_binary_index_html_end");
+
+static struct
+{
+	int set;
+	float throttle;
+	float brake;
+	float steer;
+	float view;
+} s_gamepad;
+
+static esp_err_t ws_handler(httpd_req_t *req)
+{
+	if (req->method == HTTP_GET) return ESP_OK;
+	
+	int rc;
+	uint8_t buffer[256] = {0};
+	httpd_ws_frame_t ws_packet = {
+		.payload = buffer,
+		.type = HTTPD_WS_TYPE_BINARY,
+	};
+	rc = httpd_ws_recv_frame(req, &ws_packet, 256);
+	assert(0 == rc);
+	
+	if (ws_packet.type == HTTPD_WS_TYPE_BINARY)
+	{
+		float* f = (float*)ws_packet.payload;
+		s_gamepad.steer = f[0];
+		s_gamepad.view = f[3];
+		s_gamepad.brake = f[2];
+		s_gamepad.throttle = f[5];
+		s_gamepad.set = GAMEPAD_SET;
+		//ESP_LOGI(__func__, "S%0.02f T%0.02f B%0.02f V%0.02f", 
+		//		s_gamepad.steer,
+		//		s_gamepad.throttle, 
+		//		s_gamepad.brake, 
+		//		s_gamepad.view);
+	
+	}
+	return ESP_OK;
+}
+
+static esp_err_t root_handler(httpd_req_t *req)
+{
+	httpd_resp_send(req, (char*) index_html_start, index_html_end - index_html_start);
+	return ESP_OK;
+}
+
+static const httpd_uri_t uri_ws = {
+	.uri         = "/ws",
+	.method      = HTTP_GET,
+	.handler     = ws_handler,
+	.is_websocket= true
+};
+
+static const httpd_uri_t uri_root = {
+	.uri         = "/",
+	.method      = HTTP_GET,
+	.handler     = root_handler,
+};
+
+static void start_httpd(void* arg, esp_event_base_t base, int32_t id, void* data)
+{
+	httpd_handle_t* server = (httpd_handle_t*) arg;
+	httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+
+	if (!*server)
+	{
+		ESP_LOGI(__func__, "Starting http server");
+		int rc = httpd_start(server, &config);
+		assert(0 == rc);
+
+		httpd_register_uri_handler(*server, &uri_ws);
+		httpd_register_uri_handler(*server, &uri_root);
+	}
+}
+
+static void stop_httpd(void* arg, esp_event_base_t base, int32_t id, void* data)
+{
+	httpd_handle_t* server = (httpd_handle_t*) arg;
+	if (*server)
+	{
+		ESP_LOGI(__func__, "Stopping http server");
+		int rc = httpd_stop(*server);
+		assert(0 == rc);
+		*server = NULL;
+	}
+}
 
 void app_main(void)
 {
@@ -23,6 +116,7 @@ void app_main(void)
 	}
 	assert(0 == rc);
 
+
 	#if CONFIG_WIPKAT_WIFI
 	wifi_credentials_t cred = 
 	{
@@ -30,6 +124,10 @@ void app_main(void)
 		.password = CONFIG_WIPKAT_WIFI_PASSWORD,
 	};
 	wifi_connect(&cred);
+	
+	httpd_handle_t server = NULL;
+	esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &start_httpd, &server);
+	esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &stop_httpd, &server);
 	#endif
 
 	#if CONFIG_WIPKAT_SERVO_1
@@ -61,26 +159,13 @@ void app_main(void)
 	for(;;) 
 	{
 		#ifdef SERVO2
-		servo_update(SERVO2, +0.5);
-		vTaskDelay(3000 / portTICK_PERIOD_MS); 
-		servo_update(SERVO2, +1.0);	
-		vTaskDelay(1500 / portTICK_PERIOD_MS); 
-		servo_update(SERVO2,  0.0);
-		vTaskDelay(1000 / portTICK_PERIOD_MS); 
-		servo_update(SERVO2, -1.0);
-		vTaskDelay(1000 / portTICK_PERIOD_MS);
-		servo_update(SERVO2,  0.2);
+		servo_update(SERVO2, s_gamepad.throttle);
 		#endif
 		
 		#ifdef SERVO1
-		servo_update(SERVO1, +1);
-		vTaskDelay(500 / portTICK_PERIOD_MS);
-		servo_update(SERVO1,  0);
-		vTaskDelay(1000 / portTICK_PERIOD_MS);
-		servo_update(SERVO1, -1);
-		vTaskDelay(500 / portTICK_PERIOD_MS);
-		servo_update(SERVO1,  0);
-		vTaskDelay(150 / portTICK_PERIOD_MS);
+		servo_update(SERVO1, s_gamepad.steer);
 		#endif
+
+		vTaskDelay(20 / portTICK_PERIOD_MS);
 	}
 }
