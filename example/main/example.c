@@ -26,6 +26,8 @@ static struct
 	float brake;
 	float steer;
 	float view;
+	float gear;
+	float neutral;
 } s_gamepad;
 
 static esp_err_t ws_handler(httpd_req_t *req)
@@ -48,6 +50,8 @@ static esp_err_t ws_handler(httpd_req_t *req)
 		s_gamepad.view = f[3];
 		s_gamepad.brake = f[2];
 		s_gamepad.throttle = f[5];
+		s_gamepad.gear = f[7];
+		s_gamepad.neutral = f[6];
 		s_gamepad.set = GAMEPAD_SET;
 		//ESP_LOGI(__func__, "S%0.02f T%0.02f B%0.02f V%0.02f", 
 		//		s_gamepad.steer,
@@ -156,10 +160,68 @@ void app_main(void)
 	servo_update(SERVO2,  0);	
 	#endif
 
+	float brake = 0;
+	float throttle = 0;
+	float gear = 0;
 	for(;;) 
 	{
+		brake = (s_gamepad.brake + 1) / 2;
+		
+		if (brake == 1 && s_gamepad.gear == -1)
+		{
+			gear = 1;
+			brake = 0;
+			throttle = 0;
+		}
+		if (brake == 1 && s_gamepad.gear == 1)
+		{
+			gear = -1;
+			throttle = 0;
+		}
+		if (s_gamepad.neutral)
+		{
+			gear = 0;
+		}
+
 		#ifdef SERVO2
-		servo_update(SERVO2, s_gamepad.throttle);
+		if (!gear) servo_update(SERVO2, 0);
+		else if (gear > 0)
+		{
+
+			if (brake > 0.10)
+			{
+				throttle *= 0.8;
+				ESP_LOGI("SERVO2", "BRAKE %f", brake);
+				servo_update(SERVO2, -brake);
+			}
+			else
+			{
+				throttle *= 0.9;
+				throttle += (s_gamepad.throttle+1) / 100.0f;
+				if (throttle < 0) throttle = 0;
+				if (throttle > 1) throttle = 1;
+				ESP_LOGI("SERVO2", "FWD %f", throttle);
+				servo_update(SERVO2, throttle + 0.1f);
+			}
+		}
+		else if (gear < 0)
+		{
+			if (brake > 0.10)
+			{
+				throttle = 0;
+				ESP_LOGI("SERVO2", "BRAKE %f", brake);
+				servo_update(SERVO2, 0);
+			}
+			else
+			{
+				throttle *= 0.9;
+				throttle += (s_gamepad.throttle+1) / 200.0f;
+				if (throttle < 0) throttle = 0;
+				if (throttle > 0.5) throttle = 0.5;
+				ESP_LOGI("SERVO2", "BACK %f", throttle);
+				servo_update(SERVO2, -(throttle + 0.1f));
+			}
+		}
 		#endif
 		
 		#ifdef SERVO1
